@@ -16,17 +16,41 @@ This is the **command-line client** for securely interacting with the [BBRF Serv
 
 ---
 
-## 📦 Installation
+Perfect — here's a revised **📦 Installation** section that includes both methods: cloning and building manually **and** installing via `go install`:
+
+---
+
+### 📦 Installation
+
+You can install `bbrf` in one of two ways:
+
+#### ✅ Option 1: Install with `go install` (Recommended)
+
+Make sure you have Go 1.17+ installed, then run:
+
+```bash
+go install github.com/Hadiasemi/bbrf@latest
+```
+
+This will install the `bbrf` binary to your `$GOPATH/bin` or `$HOME/go/bin`.
+Make sure that directory is in your `PATH`:
+
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+---
+
+#### 🛠 Option 2: Manual Build
 
 ```bash
 git clone https://github.com/Hadiasemi/bbrf.git
 cd bbrf
 go build -o bbrf bbrf.go
-````
+```
 
-This builds the binary `bbrf`.
+This builds the `bbrf` binary in the current directory.
 
----
 
 ## 🔧 Configuration
 
