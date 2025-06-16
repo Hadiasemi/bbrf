@@ -16,10 +16,6 @@ This is the **command-line client** for securely interacting with the [BBRF Serv
 
 ---
 
-Perfect — here's a revised **📦 Installation** section that includes both methods: cloning and building manually **and** installing via `go install`:
-
----
-
 ### 📦 Installation
 
 You can install `bbrf` in one of two ways:
