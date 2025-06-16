@@ -177,7 +177,6 @@ func handleCommand(company, cmd string, args []string) {
 		} else {
 			printUsage()
 		}
-
 	case "asn":
 		if len(args) >= 1 && args[0] == "add" {
 			handleInputAndPost("/api/asn/add", company, "asns", args[1:])
