@@ -156,5 +156,4 @@ This client uses `InsecureSkipVerify: true` to allow self-signed certs. Use with
 
 MIT License
 
-```
 
