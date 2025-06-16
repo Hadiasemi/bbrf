@@ -1,6 +1,6 @@
 # 🧠 BBRF Client - Bug Bounty Recon Framework CLI
 
-This is the **command-line client** for securely interacting with the [BBRF Server](https://github.com/honoki/bbrf-server)-style backend over **HTTPS and JWT authentication**.
+This is the **command-line client** for securely interacting with the [BBRF Server](https://github.com/Hadiasemi/bbrf-server)-style backend over **HTTPS and JWT authentication**.
 
 ---
 
