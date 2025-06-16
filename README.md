@@ -19,9 +19,9 @@ This is the **command-line client** for securely interacting with the [BBRF Serv
 ## 📦 Installation
 
 ```bash
-git clone https://github.com/yourusername/bbrf-client.git
-cd bbrf-client
-go build -o bbrf main.go
+git clone https://github.com/Hadiasemi/bbrf.git
+cd bbrf
+go build -o bbrf bbrf.go
 ````
 
 This builds the binary `bbrf`.
@@ -148,7 +148,7 @@ This client uses `InsecureSkipVerify: true` to allow self-signed certs. Use with
 ## 🧠 Credits
 
 * Inspired by [honoki/bbrf-server](https://github.com/honoki/bbrf-server)
-* Extended by \[yourusername]
+* Extended by \[HadiAsemi]
 
 ---
 

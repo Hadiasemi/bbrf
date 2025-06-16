@@ -1,3 +1,3 @@
-module github.com/Hadiasemi/bbrf-client
+module github.com/Hadiasemi/bbrf
 
 go 1.24.4
