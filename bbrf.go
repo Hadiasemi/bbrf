@@ -118,6 +118,7 @@ func printUsage() {
 	fmt.Println("  bbrf <company> domain add example.com                Add one or more subdomains")
 	fmt.Println("  echo 'x.com' | bbrf <company> domain add -           Add subdomains via stdin")
 	fmt.Println("  bbrf <company> domain add @domains.txt               Add subdomains from a file")
+	fmt.Println("  bbrf <company> domain remove example.com             Remove one or more subdomains")
 	fmt.Println("  bbrf <company> domains                               List all subdomains")
 	fmt.Println("  bbrf <company> count                                 Count subdomains")
 	fmt.Println("  bbrf <company> show www.example.com [count]          Show matching subdomains (or count only)")
@@ -129,15 +130,18 @@ func printUsage() {
 	fmt.Println("  bbrf <company> outscope @out.txt                     Add out-of-scope domains from file")
 	fmt.Println("  bbrf <company> scope in                              Show in-scope domains")
 	fmt.Println("  bbrf <company> scope out                             Show out-of-scope domains")
-
+	fmt.Println("  bbrf <company> remove-inscope '*.a.com'              Remove in-scope domains")
+	fmt.Println("  bbrf <company> remove-outscope 'blog.a.com'          Remove out-of-scope domains")
 	fmt.Println("  bbrf <company> ip add 1.2.3.4                        Add IPs manually")
 	fmt.Println("  cat ips.txt | bbrf <company> ip add -                Add IPs from stdin")
 	fmt.Println("  bbrf <company> ip add @ips.txt                       Add IPs from file")
+	fmt.Println("  bbrf <company> ip remove 1.2.3.4                     Remove IPs manually")
 	fmt.Println("  bbrf <company> ip list                               List IPs")
 
 	fmt.Println("  bbrf <company> asn add AS1234 AS5678                 Add ASN(s)")
 	fmt.Println("  echo 'AS1234' | bbrf <company> asn add -             Add ASN(s) from stdin")
 	fmt.Println("  bbrf <company> asn add @asns.txt                     Add ASN(s) from a text file")
+	fmt.Println("  bbrf <company> asn remove AS1234                     Remove ASN(s)")
 	fmt.Println("  bbrf <company> asn list                              List ASNs")
 
 	fmt.Println("  bbrf <company> help                                  Show this help message")
@@ -157,6 +161,8 @@ func handleCommand(company, cmd string, args []string) {
 	case "domain":
 		if len(args) >= 1 && args[0] == "add" {
 			handleInputAndPost("/api/domains/add", company, "domains", args[1:])
+		} else if len(args) >= 1 && args[0] == "remove" {
+			handleInputAndPost("/api/domains/remove", company, "domains", args[1:])
 		} else {
 			printUsage()
 		}
@@ -164,6 +170,8 @@ func handleCommand(company, cmd string, args []string) {
 	case "ip":
 		if len(args) >= 1 && args[0] == "add" {
 			handleInputAndPost("/api/ip", company, "ips", args[1:])
+		} else if len(args) >= 1 && args[0] == "remove" {
+			handleInputAndPost("/api/ip/remove", company, "ips", args[1:])
 		} else if len(args) == 1 && args[0] == "list" {
 			call("GET", fmt.Sprintf("/api/ip/list?company=%s", company), "")
 		} else {
@@ -173,6 +181,8 @@ func handleCommand(company, cmd string, args []string) {
 	case "asn":
 		if len(args) >= 1 && args[0] == "add" {
 			handleInputAndPost("/api/asn/add", company, "asns", args[1:])
+		} else if len(args) >= 1 && args[0] == "remove" {
+			handleInputAndPost("/api/asn/remove", company, "asns", args[1:])
 		} else if len(args) == 1 && args[0] == "list" {
 			call("GET", "/api/asn/list?company="+company, "")
 		} else {
@@ -203,6 +213,10 @@ func handleCommand(company, cmd string, args []string) {
 		} else {
 			printUsage()
 		}
+	case "remove-inscope":
+		handleInputAndPost("/api/scope/remove", company, "domains", args)
+	case "remove-outscope":
+		handleInputAndPost("/api/scope/remove", company, "domains", args)
 
 	default:
 		fmt.Println("Unknown command:", cmd)
