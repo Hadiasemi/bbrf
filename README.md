@@ -73,37 +73,45 @@ You’ll be prompted for:
 * Password
 
 ---
-
 ## 📚 Usage
 
 ```bash
 ./bbrf <company> <command> [args...]
-```
+````
 
 ### Commands
 
-| Command                  | Description               |
-| ------------------------ | ------------------------- |
-| `add-company`            | Register a new company    |
-| `domain add`             | Add domain(s)             |
-| `domains`                | List domains              |
-| `count`                  | Count domains             |
-| `show <query> [count]`   | Search domains            |
-| `inscope "<domain>..."`  | Add in-scope domains      |
-| `outscope "<domain>..."` | Add out-of-scope domains  |
-| `scope in`               | Show in-scope domains     |
-| `scope out`              | Show out-of-scope domains |
-| `ip add <ip...>`         | Add IP addresses          |
-| `ip list`                | List IP addresses         |
-| `asn add <AS12345...>`   | Add ASN(s)                |
-| `asn list`               | List ASN(s)               |
+| Command                      | Description                 |
+| ---------------------------- | --------------------------- |
+| `add-company`                | Register a new company      |
+| `domain add`                 | Add domain(s)               |
+| `domain remove`              | Remove domain(s)            |
+| `domains`                    | List domains                |
+| `count`                      | Count domains               |
+| `show <query> [count]`       | Search domains              |
+| `inscope "<domain>..."`      | Add in-scope domains        |
+| `remove-inscope "<domain>"`  | Remove in-scope domains     |
+| `outscope "<domain>..."`     | Add out-of-scope domains    |
+| `remove-outscope "<domain>"` | Remove out-of-scope domains |
+| `scope in`                   | Show in-scope domains       |
+| `scope out`                  | Show out-of-scope domains   |
+| `ip add <ip...>`             | Add IP addresses            |
+| `ip remove <ip...>`          | Remove IP addresses         |
+| `ip list`                    | List IP addresses           |
+| `asn add <AS12345...>`       | Add ASN(s)                  |
+| `asn remove <AS12345...>`    | Remove ASN(s)               |
+| `asn list`                   | List ASN(s)                 |
 
 💡 You can pipe input via `-` or read from file using `@filename.txt`.
 
 ```bash
 cat domains.txt | ./bbrf Tesla domain add -
-./bbrf Tesla asn add @asns.txt
+./bbrf Tesla domain remove @old_domains.txt
+./bbrf Tesla remove-inscope "*.beta.tesla.com"
+./bbrf Tesla asn remove AS12345
+cat remove_asns.txt | ./bbrf Tesla asn remove -
 ```
+
 
 ---
 
