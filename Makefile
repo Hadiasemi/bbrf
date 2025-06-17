@@ -92,13 +92,6 @@ do-release: ## Internal: perform the actual release
 	@sleep 2
 	@curl -s "https://proxy.golang.org/$(REPO)/@v/$(VERSION).info" > /dev/null || true
 	
-	# Test installation
-	@echo "✅ Testing installation..."
-	@GOPROXY=direct go install $(REPO)@$(VERSION)
-	
-	@echo "🎉 Release $(VERSION) completed successfully!"
-	@echo "📦 Users can install with: go install $(REPO)@$(VERSION)"
-	@echo "📦 Or latest: go install $(REPO)@latest"
 
 status: ## Show current version and repository info
 	@echo "Current version: $(CURRENT_VERSION)"
