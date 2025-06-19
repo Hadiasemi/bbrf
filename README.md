@@ -59,9 +59,9 @@ Configuration is saved to `~/.bbrf/config.json`
 ### 2. Create Your First Company
 
 ```bash
-bbrf company add --company mycompany
+bbrf company add -c mycompany
 # or
-bbrf --company mycompany company add
+bbrf -c mycompany company add
 ```
 
 ---
@@ -70,7 +70,7 @@ bbrf --company mycompany company add
 
 The CLI follows this pattern:
 ```bash
-bbrf [--company <name>] <command> [subcommand] [args...]
+bbrf [-c <name>] <command> [subcommand] [args...]
 ```
 
 **Note**: Most commands require a company context. Use `--company` flag or set it as an argument.
@@ -86,7 +86,7 @@ bbrf companies
 
 ### Add New Company
 ```bash
-bbrf --company tesla company add
+bbrf -c tesla company add
 ```
 
 ---
@@ -96,38 +96,38 @@ bbrf --company tesla company add
 ### Add Domains
 ```bash
 # Direct input
-bbrf --company tesla domain add tesla.com shop.tesla.com
+bbrf company -c tesla domain add tesla.com shop.tesla.com
 
 # From stdin
-cat domains.txt | bbrf --company tesla domain add -
+cat domains.txt | bbrf company -c tesla domain add -
 
 # From file
-bbrf --company tesla domain add @domains.txt
+bbrf company -c tesla domain add @domains.txt
 ```
 
 ### Remove Domains
 ```bash
-bbrf --company tesla domain remove old.tesla.com
-bbrf --company tesla domain remove @old_domains.txt
+bbrf company -c tesla domain remove old.tesla.com
+bbrf company -c tesla domain remove @old_domains.txt
 ```
 
 ### List All Domains
 ```bash
-bbrf --company tesla domains
+bbrf company -c tesla domains
 ```
 
 ### Count Domains
 ```bash
-bbrf --company tesla count
+bbrf company -c tesla count
 ```
 
 ### Search Domains
 ```bash
 # Show matching domains
-bbrf --company tesla show "*.tesla.com"
+bbrf company -c tesla show "*.tesla.com"
 
 # Get count only
-bbrf --company tesla show "api.*" count
+bbrf company -c tesla show "api.*" count
 ```
 
 ---
@@ -136,29 +136,29 @@ bbrf --company tesla show "api.*" count
 
 ### Add In-Scope Domains
 ```bash
-bbrf --company tesla scope inscope tesla.com "*.tesla.com"
-bbrf --company tesla scope inscope @inscope_domains.txt
+bbrf company -t tesla scope inscope tesla.com "*.tesla.com"
+bbrf company -t tesla scope inscope @inscope_domains.txt
 ```
 
 ### Add Out-of-Scope Domains
 ```bash
-bbrf --company tesla scope outscope "*.internal.tesla.com"
-echo "dev.tesla.com" | bbrf --company tesla scope outscope -
+bbrf company -c tesla scope outscope "*.internal.tesla.com"
+echo "dev.tesla.com" | bbrf company -c tesla scope outscope -
 ```
 
 ### Remove from Scope
 ```bash
-bbrf --company tesla scope remove-inscope old.tesla.com
-bbrf --company tesla scope remove-outscope temp.tesla.com
+bbrf company -c tesla scope remove-inscope old.tesla.com
+bbrf company -c tesla scope remove-outscope temp.tesla.com
 ```
 
 ### View Scope
 ```bash
 # Show in-scope domains
-bbrf --company tesla scope show in
+bbrf company -c tesla scope show in
 
 # Show out-of-scope domains
-bbrf --company tesla scope show out
+bbrf company -c tesla scope show out
 ```
 
 ---
@@ -167,19 +167,19 @@ bbrf --company tesla scope show out
 
 ### Add IP Addresses
 ```bash
-bbrf --company tesla ip add 1.2.3.4 5.6.7.8
-cat ips.txt | bbrf --company tesla ip add -
+bbrf company -c tesla ip add 1.2.3.4 5.6.7.8
+cat ips.txt | bbrf company -c tesla ip add -
 ```
 
 ### Remove IP Addresses
 ```bash
-bbrf --company tesla ip remove 1.2.3.4
-bbrf --company tesla ip remove @old_ips.txt
+bbrf company -c tesla ip remove 1.2.3.4
+bbrf company -c tesla ip remove @old_ips.txt
 ```
 
 ### List IP Addresses
 ```bash
-bbrf --company tesla ip list
+bbrf company -c tesla ip list
 ```
 
 ---
@@ -188,19 +188,19 @@ bbrf --company tesla ip list
 
 ### Add ASNs
 ```bash
-bbrf --company tesla asn add AS13335 AS15169
-echo "AS8075" | bbrf --company tesla asn add -
+bbrf company -c tesla asn add AS13335 AS15169
+echo "AS8075" | bbrf company -c tesla asn add -
 ```
 
 ### Remove ASNs
 ```bash
-bbrf --company tesla asn remove AS13335
-bbrf --company tesla asn remove @old_asns.txt
+bbrf company -c tesla asn remove AS13335
+bbrf company -c tesla asn remove @old_asns.txt
 ```
 
 ### List ASNs
 ```bash
-bbrf --company tesla asn list
+bbrf company -c tesla asn list
 ```
 
 ---
@@ -211,19 +211,19 @@ The CLI supports three input methods for most commands:
 
 ### 1. Direct Arguments
 ```bash
-bbrf --company tesla domain add tesla.com shop.tesla.com
+bbrf company -c tesla domain add tesla.com shop.tesla.com
 ```
 
 ### 2. Standard Input (stdin)
 ```bash
-cat domains.txt | bbrf --company tesla domain add -
-subfinder -d tesla.com | bbrf --company tesla domain add -
+cat domains.txt | bbrf company -c tesla domain add -
+subfinder -d tesla.com | bbrf company -c tesla domain add -
 ```
 
 ### 3. File Input
 ```bash
-bbrf --company tesla domain add @domains.txt
-bbrf --company tesla scope inscope @inscope_list.txt
+bbrf company -c tesla domain add @domains.txt
+bbrf company -c tesla scope inscope @inscope_list.txt
 ```
 
 ---
@@ -234,32 +234,32 @@ bbrf --company tesla scope inscope @inscope_list.txt
 ```bash
 # Login and setup
 bbrf login
-bbrf --company tesla company add
+bbrf company -c tesla company add
 
 # Add root domains
-bbrf --company tesla domain add tesla.com
+bbrf company -c tesla domain add tesla.com
 
 # Set scope
-bbrf --company tesla scope inscope "*.tesla.com"
-bbrf --company tesla scope outscope "*.internal.tesla.com"
+bbrf company -c tesla scope inscope "*.tesla.com"
+bbrf company -c tesla scope outscope "*.internal.tesla.com"
 ```
 
 ### Subdomain Enumeration Integration
 ```bash
 # Using subfinder
-subfinder -d tesla.com | bbrf --company tesla domain add -
+subfinder -d tesla.com | bbrf company -c tesla domain add -
 
 # Using amass
-amass enum -d tesla.com | bbrf --company tesla domain add -
+amass enum -d tesla.com | bbrf company -c tesla domain add -
 
 # From multiple tools
-cat subdomains_*.txt | sort -u | bbrf --company tesla domain add -
+cat subdomains_*.txt | sort -u | bbrf company -c tesla domain add -
 ```
 
 ### Network Intelligence
 ```bash
 # Add discovered IPs
-nmap -sL tesla.com/24 | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | bbrf --company tesla ip add -
+nmap -sL tesla.com/24 | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | bbrf company -c tesla ip add -
 
 # Add ASNs
 whois tesla.com | grep -i "OriginAS" | bbrf --company tesla asn add -
@@ -319,55 +319,6 @@ whois tesla.com | grep -i "OriginAS" | bbrf --company tesla asn add -
 
 ---
 
-## 🔗 Integration Examples
-
-### Bash Automation
-```bash
-#!/bin/bash
-COMPANY="tesla"
-
-# Subdomain enumeration pipeline
-subfinder -d tesla.com -silent | \
-    httpx -silent | \
-    bbrf --company $COMPANY domain add -
-
-# Add to scope
-bbrf --company $COMPANY scope inscope "*.tesla.com"
-```
-
-### Python Integration
-```python
-import subprocess
-import json
-
-def bbrf_add_domains(company, domains):
-    """Add domains to BBRF via CLI"""
-    process = subprocess.Popen(
-        ['bbrf', '--company', company, 'domain', 'add', '-'],
-        stdin=subprocess.PIPE,
-        text=True
-    )
-    process.communicate('\n'.join(domains))
-```
-
----
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**Login Failed**
-```bash
-# Check server URL and credentials
-bbrf login
-```
-
-**Company Required Error**
-```bash
-# Always specify company context
-bbrf --company mycompany domains
-```
-
 **Certificate Errors**
 - The client accepts self-signed certificates by default
 - Ensure your BBRF server is running with HTTPS
@@ -398,16 +349,6 @@ bbrf --company tesla domain add @domains.txt
 - **Batch Operations**: Use file input for large datasets
 - **Piping**: Chain tools together with pipes for efficiency
 - **Parallel Processing**: Run multiple instances for different companies
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
 
 ---
 
