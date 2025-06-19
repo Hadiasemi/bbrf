@@ -276,8 +276,8 @@ whois tesla.com | grep -i "OriginAS" | bbrf --company tesla asn add -
 | | `company add` | Create new company |
 | **Domains** | `domain add [items...]` | Add domains |
 | | `domain remove [items...]` | Remove domains |
-| | `domains` | List all domains |
-| | `count` | Count total domains |
+| | `domain list` | List all domains |
+| | `domain count` | Count total domains |
 | | `show <query> [count]` | Search domains |
 | **Scope** | `scope inscope [domains...]` | Add in-scope domains |
 | | `scope outscope [domains...]` | Add out-of-scope domains |
@@ -287,9 +287,11 @@ whois tesla.com | grep -i "OriginAS" | bbrf --company tesla asn add -
 | **Network** | `ip add [ips...]` | Add IP addresses |
 | | `ip remove [ips...]` | Remove IP addresses |
 | | `ip list` | List IP addresses |
+| | `ip count` | Count IP addresses |
 | | `asn add [asns...]` | Add ASNs |
 | | `asn remove [asns...]` | Remove ASNs |
 | | `asn list` | List ASNs |
+| | `asn count` | Count ASNs |
 
 ---
 
