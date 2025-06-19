@@ -63,7 +63,7 @@ var rootCmd = &cobra.Command{
 	Use:   "bbrf",
 	Short: title("🔍 BBRF CLI - Bug Bounty Reconnaissance Framework"),
 	Long: title("🔍 BBRF CLI - Bug Bounty Reconnaissance Framework") + "\n\n" +
-		info("A command-line interface for managing bug bounty reconnaissance data with style!"),
+		info("A command-line interface for managing bug bounty reconnaissance data!"),
 }
 
 func init() {
@@ -111,22 +111,6 @@ func createCompanyCommands() *cobra.Command {
 			},
 		},
 		&cobra.Command{
-			Use:   "domains",
-			Short: "🌐 List all domains",
-			Run: func(cmd *cobra.Command, args []string) {
-				fmt.Println(info("🔍 Fetching domains for: " + company))
-				call("GET", "/api/domains?company="+company, "")
-			},
-		},
-		&cobra.Command{
-			Use:   "count",
-			Short: "🔢 Count domains",
-			Run: func(cmd *cobra.Command, args []string) {
-				fmt.Println(info("📊 Counting domains for: " + company))
-				call("GET", "/api/domains/count?company="+company, "")
-			},
-		},
-		&cobra.Command{
 			Use:   "show <query> [count]",
 			Short: "👁️  Show matching domains",
 			Args:  cobra.MinimumNArgs(1),
@@ -147,16 +131,20 @@ func createCompanyCommands() *cobra.Command {
 		createCRUDCommand("domain", "domains", map[string]string{
 			"add":    "/api/domains/add",
 			"remove": "/api/domains/remove",
+			"list":   "/api/domains",       // Added list endpoint for domains
+			"count":  "/api/domains/count", // Added count endpoint for domains
 		}),
 		createCRUDCommand("ip", "ips", map[string]string{
 			"add":    "/api/ip",
 			"remove": "/api/ip/remove",
 			"list":   "/api/ip/list",
+			"count":  "/api/ip/count", // Added count endpoint for ips
 		}),
 		createCRUDCommand("asn", "asns", map[string]string{
 			"add":    "/api/asn/add",
 			"remove": "/api/asn/remove",
 			"list":   "/api/asn/list",
+			"count":  "/api/asn/count", // Added count endpoint for asns
 		}),
 		createScopeCommand(),
 	)
@@ -182,6 +170,15 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
 				Short: fmt.Sprintf("%s List %s", actionEmoji, name+"s"),
 				Run: func(cmd *cobra.Command, args []string) {
 					fmt.Println(info(fmt.Sprintf("%s Listing %s for: %s", actionEmoji, name+"s", company)))
+					call("GET", endpoint+"?company="+company, "")
+				},
+			})
+		} else if action == "count" {
+			cmd.AddCommand(&cobra.Command{
+				Use:   action,
+				Short: fmt.Sprintf("🔢 Count %s", name+"s"),
+				Run: func(cmd *cobra.Command, args []string) {
+					fmt.Println(info(fmt.Sprintf("📊 Counting %s for: %s", name+"s", company)))
 					call("GET", endpoint+"?company="+company, "")
 				},
 			})
