@@ -102,13 +102,26 @@ func createCompanyCommands() *cobra.Command {
 	companyCmd := &cobra.Command{
 		Use:   "company",
 		Short: "🏢 Company operations",
+		Example: `  # Add a company
+  bbrf company add -c acme
+
+  # List domains
+  bbrf company domain list -c acme
+
+  # Add domains
+  bbrf company domain add domain1.com domain2.com -c acme
+
+  # List IPs
+  bbrf company ip list -c acme
+
+  # Show matching domains
+  bbrf company show "*.example.com" -c acme
+
+  # Manage scope
+  bbrf company scope inscope domain.com -c acme`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if company == "" && len(args) > 0 {
 				company = args[0]
-			}
-			if company == "" {
-				fmt.Println(errorC("❌ Company name required. Use --company flag or provide as argument."))
-				os.Exit(1)
 			}
 		},
 	}
