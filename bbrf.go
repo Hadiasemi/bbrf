@@ -64,6 +64,17 @@ var rootCmd = &cobra.Command{
 	Short: title("🔍 BBRF CLI - Bug Bounty Reconnaissance Framework"),
 	Long: title("🔍 BBRF CLI - Bug Bounty Reconnaissance Framework") + "\n\n" +
 		info("A command-line interface for managing bug bounty reconnaissance data!"),
+	Example: `  # Login to BBRF server
+  bbrf login
+
+  # List all companies
+  bbrf companies
+
+  # Add a new company
+  bbrf company add -c example
+
+  # List domains for a company
+  bbrf company domain list -c example`,
 }
 
 func init() {
@@ -72,14 +83,16 @@ func init() {
 	// Add all commands
 	rootCmd.AddCommand(
 		&cobra.Command{
-			Use:   "login",
-			Short: "🔐 Login to BBRF server and save token",
-			Run:   func(cmd *cobra.Command, args []string) { doLogin() },
+			Use:     "login",
+			Short:   "🔐 Login to BBRF server and save token",
+			Example: "  bbrf login",
+			Run:     func(cmd *cobra.Command, args []string) { doLogin() },
 		},
 		&cobra.Command{
-			Use:   "companies",
-			Short: "🏢 List all companies",
-			Run:   func(cmd *cobra.Command, args []string) { call("GET", "/api/company/list", "") },
+			Use:     "companies",
+			Short:   "🏢 List all companies",
+			Example: "  bbrf companies",
+			Run:     func(cmd *cobra.Command, args []string) { call("GET", "/api/company/list", "") },
 		},
 		createCompanyCommands(),
 	)
@@ -105,6 +118,11 @@ func createCompanyCommands() *cobra.Command {
 		&cobra.Command{
 			Use:   "add",
 			Short: "➕ Add a new company",
+			Example: `  # Add a company using flag
+  bbrf company add -c acme
+
+  # Add a company using argument
+  bbrf company add -c acme`,
 			Run: func(cmd *cobra.Command, args []string) {
 				fmt.Println(info("📝 Adding company: " + company))
 				call("POST", "/api/company", fmt.Sprintf(`{"company":"%s"}`, company))
@@ -113,7 +131,12 @@ func createCompanyCommands() *cobra.Command {
 		&cobra.Command{
 			Use:   "show <query> [count]",
 			Short: "👁️  Show matching domains",
-			Args:  cobra.MinimumNArgs(1),
+			Example: `  # Show domains matching a pattern
+  bbrf company show "*.example.com" -c acme
+
+  # Show domains with count
+  bbrf company show "*.example.com" count -c acme`,
+			Args: cobra.MinimumNArgs(1),
 			Run: func(cmd *cobra.Command, args []string) {
 				query := args[0]
 				countFlag := "false"
@@ -158,6 +181,18 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("%s %s operations", emoji, strings.Title(name)),
+		Example: fmt.Sprintf(`  # List %s
+  bbrf company %s list -c acme
+
+  # Add %s from arguments
+  bbrf company %s add domain1.com domain2.com -c acme
+
+  # Add %s from file
+  bbrf company %s add @domains.txt -c acme
+
+  # Add %s from stdin
+  cat domains.txt | bbrf company %s add - -c acme`,
+			name+"s", name, name+"s", name, name+"s", name, name+"s", name),
 	}
 
 	for action, endpoint := range endpoints {
@@ -166,17 +201,19 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
 
 		if action == "list" {
 			cmd.AddCommand(&cobra.Command{
-				Use:   action,
-				Short: fmt.Sprintf("%s List %s", actionEmoji, name+"s"),
+				Use:     action,
+				Short:   fmt.Sprintf("%s List %s", actionEmoji, name+"s"),
+				Example: fmt.Sprintf("  bbrf company %s list -c acme", name),
 				Run: func(cmd *cobra.Command, args []string) {
-					fmt.Println(info(fmt.Sprintf("%s Listing %s for: %s", actionEmoji, name+"s", company)))
+					// fmt.Println(info(fmt.Sprintf("%s Listing %s for: %s", actionEmoji, name+"s", company)))
 					call("GET", endpoint+"?company="+company, "")
 				},
 			})
 		} else if action == "count" {
 			cmd.AddCommand(&cobra.Command{
-				Use:   action,
-				Short: fmt.Sprintf("🔢 Count %s", name+"s"),
+				Use:     action,
+				Short:   fmt.Sprintf("🔢 Count %s", name+"s"),
+				Example: fmt.Sprintf("  bbrf company %s count -c acme", name),
 				Run: func(cmd *cobra.Command, args []string) {
 					fmt.Println(info(fmt.Sprintf("📊 Counting %s for: %s", name+"s", company)))
 					call("GET", endpoint+"?company="+company, "")
@@ -194,6 +231,17 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
 					info("•"), name, action,
 					info("•"), name, action,
 					info("•"), name, action),
+				Example: fmt.Sprintf(`  # %s %s directly
+  bbrf company %s %s item1 item2 -c acme
+
+  # %s %s from file  
+  bbrf company %s %s @items.txt -c acme
+
+  # %s %s from stdin
+  cat items.txt | bbrf company %s %s - -c acme`,
+					strings.Title(action), name+"s", name, action,
+					strings.Title(action), name+"s", name, action,
+					strings.Title(action), name+"s", name, action),
 				Run: func(cmd *cobra.Command, args []string) {
 					fmt.Println(info(fmt.Sprintf("%s %s %s for: %s", actionEmoji, strings.Title(action), name+"s", company)))
 					handleInputAndPost(endpoint, company, dataKey, args)
@@ -210,6 +258,17 @@ func createScopeCommand() *cobra.Command {
 	scopeCmd := &cobra.Command{
 		Use:   "scope",
 		Short: "🎯 Scope management",
+		Example: `  # Add domains to in-scope
+  bbrf company scope inscope example.com sub.example.com -c acme
+
+  # Add domains to out-of-scope from file
+  bbrf company scope outscope @outscope.txt -c acme
+
+  # Show in-scope domains
+  bbrf company scope show in -c acme
+
+  # Show out-of-scope domains  
+  bbrf company scope show out -c acme`,
 	}
 
 	scopeActions := map[string]struct {
@@ -229,6 +288,15 @@ func createScopeCommand() *cobra.Command {
 		scopeCmd.AddCommand(&cobra.Command{
 			Use:   fmt.Sprintf("%s [domains...]", action),
 			Short: fmt.Sprintf("%s %s", config.emoji, config.short),
+			Example: fmt.Sprintf(`  # %s directly
+  bbrf company scope %s domain1.com domain2.com -c acme
+
+  # %s from file
+  bbrf company scope %s @domains.txt -c acme
+
+  # %s from stdin
+  cat domains.txt | bbrf company scope %s - -c acme`,
+				config.short, action, config.short, action, config.short, action),
 			Run: func(cmd *cobra.Command, args []string) {
 				fmt.Println(info(fmt.Sprintf("%s %s for: %s", config.emoji, config.short, company)))
 				handleInputAndPost(config.endpoint, company, "domains", args)
@@ -240,7 +308,12 @@ func createScopeCommand() *cobra.Command {
 	scopeCmd.AddCommand(&cobra.Command{
 		Use:   "show <in|out>",
 		Short: "👁️  Show scope domains",
-		Args:  cobra.ExactArgs(1),
+		Example: `  # Show in-scope domains
+  bbrf company scope show in --company=acme
+
+  # Show out-of-scope domains
+  bbrf company scope show out -c acme`,
+		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			scopeType := args[0]
 			if scopeType != "in" && scopeType != "out" {
