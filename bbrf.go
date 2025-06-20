@@ -142,6 +142,19 @@ func createCompanyCommands() *cobra.Command {
 			},
 		},
 		&cobra.Command{
+			Use:   "remove",
+			Short: "🗑️ Remove a company",
+			Example: `  # Remove a company using flag
+		  bbrf company remove -c acme
+
+		  # Remove a company using argument
+		  bbrf company remove acme`,
+			Run: func(cmd *cobra.Command, args []string) {
+				fmt.Println(info("🗑️ Removing company: " + company))
+				call("POST", "/api/company/remove", fmt.Sprintf(`{"company":"%s"}`, company))
+			},
+		},
+		&cobra.Command{
 			Use:   "show <query> [count]",
 			Short: "👁️  Show matching domains",
 			Example: `  # Show domains matching a pattern
