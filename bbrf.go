@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/fang"
@@ -24,6 +25,12 @@ type Config struct {
 	API   string `json:"api"`
 }
 
+type ScopeManager struct {
+	InScope  []string
+	OutScope []string
+	company  string
+}
+
 var (
 	configPath     = ""
 	config         Config
@@ -32,19 +39,22 @@ var (
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	company string
+	company           string
+	enableScopeFilter bool
+	allowOutOfScope   bool
+	verboseScope      bool
 
 	// Color functions using fatih/color
-	title   = color.New(color.FgMagenta, color.Bold).SprintFunc()
-	success = color.New(color.FgGreen, color.Bold).SprintFunc()
-	errorC  = color.New(color.FgRed, color.Bold).SprintFunc()
-	warning = color.New(color.FgYellow, color.Bold).SprintFunc()
-	info    = color.New(color.FgBlue).SprintFunc()
-	prompt  = color.New(color.FgMagenta, color.Bold).SprintFunc()
-	data    = color.New(color.FgCyan).SprintFunc()
-	count   = color.New(color.FgGreen, color.Bold).SprintFunc()
-	domain  = color.New(color.FgBlue).SprintFunc()
-	header  = color.New(color.FgWhite, color.Bold, color.BgBlack).SprintFunc()
+	title     = color.New(color.FgMagenta, color.Bold).SprintFunc()
+	success   = color.New(color.FgGreen, color.Bold).SprintFunc()
+	errorC    = color.New(color.FgRed, color.Bold).SprintFunc()
+	warning   = color.New(color.FgYellow, color.Bold).SprintFunc()
+	info      = color.New(color.FgBlue).SprintFunc()
+	prompt    = color.New(color.FgMagenta, color.Bold).SprintFunc()
+	data      = color.New(color.FgCyan).SprintFunc()
+	count     = color.New(color.FgGreen, color.Bold).SprintFunc()
+	domainClr = color.New(color.FgBlue).SprintFunc()
+	header    = color.New(color.FgWhite, color.Bold, color.BgBlack).SprintFunc()
 )
 
 func main() {
@@ -74,11 +84,26 @@ var rootCmd = &cobra.Command{
   bbrf company add -c example
 
   # List domains for a company
-  bbrf company domain list -c example`,
+  bbrf company domain list -c example
+
+  # Add domains with scope filtering (default)
+  bbrf company domain add example.com sub.example.com -c example
+
+  # Add domains with verbose scope info
+  bbrf company domain add @domains.txt -c example --verbose-scope
+
+  # Disable scope filtering
+  bbrf company domain add example.com -c example --scope-filter=false
+
+  # Allow out-of-scope domains
+  bbrf company domain add example.com -c example --allow-out-of-scope`,
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&company, "company", "c", "", "Company name (required for most commands)")
+	rootCmd.PersistentFlags().BoolVar(&enableScopeFilter, "scope-filter", true, "Enable automatic scope filtering")
+	rootCmd.PersistentFlags().BoolVar(&allowOutOfScope, "allow-out-of-scope", false, "Allow out-of-scope domains to be added")
+	rootCmd.PersistentFlags().BoolVar(&verboseScope, "verbose-scope", false, "Show detailed scope filtering info")
 
 	// Add all commands
 	rootCmd.AddCommand(
@@ -108,8 +133,11 @@ func createCompanyCommands() *cobra.Command {
   # List domains
   bbrf company domain list -c acme
 
-  # Add domains
+  # Add domains with scope filtering
   bbrf company domain add domain1.com domain2.com -c acme
+
+  # Add domains from file with verbose scope info
+  bbrf company domain add @domains.txt -c acme --verbose-scope
 
   # List IPs
   bbrf company ip list -c acme
@@ -210,15 +238,18 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
 		Example: fmt.Sprintf(`  # List %s
   bbrf company %s list -c acme
 
-  # Add %s from arguments
+  # Add %s from arguments (with scope filtering for domains)
   bbrf company %s add domain1.com domain2.com -c acme
 
-  # Add %s from file
-  bbrf company %s add @domains.txt -c acme
+  # Add %s from file with verbose scope info
+  bbrf company %s add @domains.txt -c acme --verbose-scope
 
   # Add %s from stdin
-  cat domains.txt | bbrf company %s add - -c acme`,
-			name+"s", name, name+"s", name, name+"s", name, name+"s", name),
+  cat domains.txt | bbrf company %s add - -c acme
+
+  # Disable scope filtering for domains
+  bbrf company %s add domain1.com -c acme --scope-filter=false`,
+			name+"s", name, name+"s", name, name+"s", name, name+"s", name, name),
 	}
 
 	for action, endpoint := range endpoints {
@@ -252,11 +283,17 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
 				Long: fmt.Sprintf(`%s %s %s. Supports:
 %s Direct: %s %s item1 item2
 %s Stdin: echo 'item' | bbrf company %s %s -
-%s File: bbrf company %s %s @file.txt`,
+%s File: bbrf company %s %s @file.txt
+
+Scope Filtering (for domains):
+%s Enabled by default with --scope-filter=true
+%s Use --allow-out-of-scope to include out-of-scope domains
+%s Use --verbose-scope for detailed filtering info`,
 					actionEmoji, strings.Title(action), name+"s",
 					info("•"), name, action,
 					info("•"), name, action,
-					info("•"), name, action),
+					info("•"), name, action,
+					info("•"), info("•"), info("•")),
 				Example: fmt.Sprintf(`  # %s %s directly
   bbrf company %s %s item1 item2 -c acme
 
@@ -264,12 +301,20 @@ func createCRUDCommand(name, dataKey string, endpoints map[string]string) *cobra
   bbrf company %s %s @items.txt -c acme
 
   # %s %s from stdin
-  cat items.txt | bbrf company %s %s - -c acme`,
+  cat items.txt | bbrf company %s %s - -c acme
+
+  # %s %s with verbose scope filtering (domains only)
+  bbrf company %s %s @items.txt -c acme --verbose-scope`,
+					strings.Title(action), name+"s", name, action,
 					strings.Title(action), name+"s", name, action,
 					strings.Title(action), name+"s", name, action,
 					strings.Title(action), name+"s", name, action),
 				Run: func(cmd *cobra.Command, args []string) {
-					fmt.Println(info(fmt.Sprintf("%s %s %s for: %s", actionEmoji, strings.Title(action), name+"s", company)))
+					if enableScopeFilter && name == "domain" {
+						fmt.Printf("%s %s %s for: %s (with scope filtering)\n", info(actionEmoji), info(strings.Title(action)), info(name+"s"), info(company))
+					} else {
+						fmt.Printf("%s %s %s for: %s\n", info(actionEmoji), info(strings.Title(action)), info(name+"s"), info(company))
+					}
 					handleInputAndPost(endpoint, company, dataKey, args)
 				},
 			})
@@ -355,7 +400,212 @@ func createScopeCommand() *cobra.Command {
 		},
 	})
 
+	// Add test command for debugging scope filtering
+	scopeCmd.AddCommand(&cobra.Command{
+		Use:   "test <domain>",
+		Short: "🧪 Test if a domain matches scope rules",
+		Example: `  # Test if a domain is in scope
+  bbrf company scope test example.com -c acme
+
+  # Test multiple domains
+  bbrf company scope test example.com sub.example.com -c acme`,
+		Args: cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(info(fmt.Sprintf("🧪 Testing scope for company: %s", company)))
+
+			scopeManager := NewScopeManager(company)
+			err := scopeManager.LoadScope()
+			if err != nil {
+				fmt.Println(errorC("❌ Failed to load scope rules: " + err.Error()))
+				return
+			}
+
+			fmt.Printf("%s Loaded %d in-scope and %d out-of-scope patterns\n",
+				info("ℹ️"), len(scopeManager.InScope), len(scopeManager.OutScope))
+
+			if len(scopeManager.InScope) > 0 {
+				fmt.Printf("%s In-scope patterns: %v\n", info("📋"), scopeManager.InScope)
+			}
+			if len(scopeManager.OutScope) > 0 {
+				fmt.Printf("%s Out-of-scope patterns: %v\n", info("📋"), scopeManager.OutScope)
+			}
+
+			fmt.Println()
+
+			for _, domain := range args {
+				shouldAccept, reason := scopeManager.ShouldAcceptDomain(domain)
+				if shouldAccept {
+					fmt.Printf("%s %s - %s\n", success("✅ ACCEPT:"), domainClr(domain), info(reason))
+				} else {
+					fmt.Printf("%s %s - %s\n", errorC("❌ REJECT:"), domainClr(domain), warning(reason))
+				}
+			}
+		},
+	})
+
 	return scopeCmd
+}
+
+// Scope Manager Methods
+func NewScopeManager(company string) *ScopeManager {
+	return &ScopeManager{
+		InScope:  make([]string, 0),
+		OutScope: make([]string, 0),
+		company:  company,
+	}
+}
+
+// LoadScope loads scope rules from the server
+func (sm *ScopeManager) LoadScope() error {
+	// Load in-scope patterns
+	inscope, err := sm.fetchScopeFromServer("in")
+	if err == nil {
+		sm.InScope = inscope
+	}
+
+	// Load out-scope patterns
+	outscope, err := sm.fetchScopeFromServer("out")
+	if err == nil {
+		sm.OutScope = outscope
+	}
+
+	return nil
+}
+
+func (sm *ScopeManager) fetchScopeFromServer(scopeType string) ([]string, error) {
+	url := fmt.Sprintf("%s/api/scope/show?company=%s&type=%s", config.API, sm.company, scopeType)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+config.Token)
+	resp, err := insecureClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respData, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 {
+		return []string{}, nil
+	}
+
+	// Handle empty response
+	if len(strings.TrimSpace(string(respData))) == 0 {
+		return []string{}, nil
+	}
+
+	var patterns []string
+
+	// Try to parse as JSON first
+	err = json.Unmarshal(respData, &patterns)
+	if err != nil {
+		// If JSON parsing fails, treat as plain text (split by lines)
+		text := strings.TrimSpace(string(respData))
+		if text != "" {
+			// Split by newlines and filter empty lines
+			lines := strings.Split(text, "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if line != "" {
+					patterns = append(patterns, line)
+				}
+			}
+		}
+	}
+
+	return patterns, nil
+}
+
+// ShouldAcceptDomain determines if a domain should be accepted based on scope rules
+func (sm *ScopeManager) ShouldAcceptDomain(domain string) (bool, string) {
+	domain = strings.ToLower(strings.TrimSpace(domain))
+
+	// First check if it's explicitly out of scope
+	if sm.IsOutOfScope(domain) {
+		return false, "domain matches out-of-scope pattern"
+	}
+
+	// Then check if it's in scope
+	if sm.IsInScope(domain) {
+		return true, "domain matches in-scope pattern"
+	}
+
+	// If no in-scope patterns are defined, default to accept
+	if len(sm.InScope) == 0 {
+		return true, "no in-scope patterns defined, accepting by default"
+	}
+
+	// Domain doesn't match any in-scope pattern
+	return false, "domain does not match any in-scope pattern"
+}
+
+func (sm *ScopeManager) IsInScope(domain string) bool {
+	for _, pattern := range sm.InScope {
+		if sm.matchesPattern(domain, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func (sm *ScopeManager) IsOutOfScope(domain string) bool {
+	for _, pattern := range sm.OutScope {
+		if sm.matchesPattern(domain, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func (sm *ScopeManager) matchesPattern(domain, pattern string) bool {
+	pattern = strings.ToLower(strings.TrimSpace(pattern))
+	domain = strings.ToLower(strings.TrimSpace(domain))
+
+	// Exact match
+	if pattern == domain {
+		return true
+	}
+
+	// Wildcard pattern matching
+	if strings.Contains(pattern, "*") {
+		return sm.matchesWildcard(domain, pattern)
+	}
+
+	// Subdomain matching (implicit wildcard)
+	if strings.HasSuffix(domain, "."+pattern) {
+		return true
+	}
+
+	return false
+}
+
+func (sm *ScopeManager) matchesWildcard(domain, pattern string) bool {
+	// Handle *.example.com patterns
+	if strings.HasPrefix(pattern, "*.") {
+		suffix := pattern[2:] // Remove "*."
+		return domain == suffix || strings.HasSuffix(domain, "."+suffix)
+	}
+
+	// Handle other wildcard patterns like sub.*.example.com
+	// Convert wildcard pattern to regex
+	escapedPattern := regexp.QuoteMeta(pattern)
+	// Replace escaped \* with .* for regex matching
+	regexPattern := strings.ReplaceAll(escapedPattern, "\\*", ".*")
+	// Anchor the pattern
+	regexPattern = "^" + regexPattern + "$"
+
+	regex, err := regexp.Compile(regexPattern)
+	if err != nil {
+		// Fallback to simple glob matching
+		matched, _ := filepath.Match(pattern, domain)
+		return matched
+	}
+
+	return regex.MatchString(domain)
 }
 
 // Helper functions for emojis
@@ -456,28 +706,126 @@ func handleInputAndPost(path, company, key string, args []string) {
 	switch {
 	case args[0] == "-":
 		// From stdin
-		fmt.Println(info("📥 Reading from stdin..."))
+		fmt.Printf("%s Reading from stdin...\n", info("📥"))
 		input, _ := io.ReadAll(os.Stdin)
 		value = string(input)
 	case strings.HasPrefix(args[0], "@") || strings.HasSuffix(args[0], ".txt"):
 		// From file
 		filePath := strings.TrimPrefix(args[0], "@")
-		fmt.Println(info("📁 Reading from file: " + filePath))
+		fmt.Printf("%s Reading from file: %s\n", info("📁"), filePath)
 		content, err := os.ReadFile(filePath)
 		if err != nil {
-			fmt.Println(errorC("❌ Failed to read file: " + err.Error()))
+			fmt.Printf("%s Failed to read file: %s\n", errorC("❌"), err.Error())
 			os.Exit(1)
 		}
 		value = string(content)
 	default:
 		// Direct arguments
-		fmt.Println(info("📝 Processing direct arguments..."))
+		fmt.Printf("%s Processing direct arguments...\n", info("📝"))
 		value = strings.Join(args, " ")
+	}
+
+	// Apply scope filtering for domain operations
+	if enableScopeFilter && !allowOutOfScope && key == "domains" {
+		// fmt.Printf("%s Applying scope filtering...\n", info("🔍"))
+		// originalValue := value
+		value = filterDomainsBeforePost(company, value)
+
+		// If all domains were filtered out, don't make the API call
+		if strings.TrimSpace(value) == "" {
+			fmt.Printf("%s All domains were filtered out. No API call will be made.\n", warning("⚠️"))
+			return
+		}
+
+		// if originalValue != value {
+		// 	fmt.Printf("%s Scope filtering applied successfully\n", info("✅"))
+		// }
+	} else if key == "domains" {
+		fmt.Printf("%s Scope filtering is DISABLED or bypassed\n", warning("⚠️"))
+		if !enableScopeFilter {
+			fmt.Printf("   - Reason: scope-filter flag is false\n")
+		}
+		if allowOutOfScope {
+			fmt.Printf("   - Reason: allow-out-of-scope flag is true\n")
+		}
 	}
 
 	body := map[string]string{"company": company, key: value}
 	jsonBody, _ := json.Marshal(body)
+
 	call("POST", path, string(jsonBody))
+}
+
+func filterDomainsBeforePost(company, domainsInput string) string {
+	if verboseScope {
+		fmt.Printf("%s Loading scope rules for filtering...\n", info("🔍"))
+	}
+
+	scopeManager := NewScopeManager(company)
+	err := scopeManager.LoadScope()
+	if err != nil {
+		if verboseScope {
+			fmt.Printf("%s Could not load scope rules, proceeding without filtering\n", warning("⚠️"))
+		}
+		return domainsInput
+	}
+
+	if verboseScope {
+		fmt.Printf("%s Loaded %d in-scope and %d out-of-scope patterns\n",
+			info("ℹ️"), len(scopeManager.InScope), len(scopeManager.OutScope))
+		if len(scopeManager.InScope) > 0 {
+			fmt.Printf("%s In-scope patterns: %v\n", info("ℹ️"), scopeManager.InScope)
+		}
+		if len(scopeManager.OutScope) > 0 {
+			fmt.Printf("%s Out-of-scope patterns: %v\n", info("ℹ️"), scopeManager.OutScope)
+		}
+	}
+
+	// Parse domains from input (handle newlines and spaces)
+	allInput := strings.ReplaceAll(domainsInput, "\n", " ")
+	domains := strings.Fields(allInput)
+	var acceptedDomains []string
+	var rejectedCount int
+
+	fmt.Printf("%s Processing %d domains for scope filtering...\n", info("ℹ️"), len(domains))
+
+	for _, domain := range domains {
+		domain = strings.TrimSpace(domain)
+		if domain == "" {
+			continue
+		}
+
+		// Extract domain from domain:ip format if present
+		cleanDomain := strings.Split(domain, ":")[0]
+
+		shouldAccept, reason := scopeManager.ShouldAcceptDomain(cleanDomain)
+		if shouldAccept {
+			acceptedDomains = append(acceptedDomains, domain)
+			if verboseScope {
+				fmt.Printf("%s %s - %s\n", success("✅ ACCEPTED:"), domainClr(domain), reason)
+			}
+		} else {
+			rejectedCount++
+			fmt.Printf("%s %s - %s\n", errorC("❌ REJECTED:"), domainClr(domain), reason)
+		}
+	}
+
+	// if rejectedCount > 0 {
+	// 	fmt.Printf("%s %d domains filtered out due to scope rules\n",
+	// 		warning("⚠️"), rejectedCount)
+	// }
+
+	if len(acceptedDomains) != len(domains) {
+		fmt.Printf("%s %d/%d domains will be added\n",
+			info("ℹ️"), len(acceptedDomains), len(domains))
+	}
+
+	if len(acceptedDomains) == 0 {
+		fmt.Printf("%s No domains passed scope filtering! Nothing will be added.\n", warning("⚠️"))
+		return ""
+	}
+
+	return strings.Join(acceptedDomains, " ")
 }
 
 func call(method, path, body string) {
@@ -525,7 +873,7 @@ func call(method, path, body string) {
 		for i, c := range companies {
 			fmt.Printf("%s %s\n",
 				warning(fmt.Sprintf("%d.", i+1)),
-				domain(c))
+				domainClr(c))
 		}
 		fmt.Println(count(fmt.Sprintf("\n📊 Total: %d companies", len(companies))))
 		return
@@ -545,7 +893,7 @@ func call(method, path, body string) {
 			for i, item := range v {
 				fmt.Printf("%s %s\n",
 					warning(fmt.Sprintf("%d.", i+1)),
-					domain(fmt.Sprintf("%v", item)))
+					domainClr(fmt.Sprintf("%v", item)))
 			}
 			fmt.Println(count(fmt.Sprintf("\n📊 Total: %d items", len(v))))
 		default:
