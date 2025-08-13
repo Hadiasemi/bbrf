@@ -737,10 +737,10 @@ func handleInputAndPost(path, company, key string, args []string) {
 		value = filterDomainsBeforePost(company, value)
 
 		// If all domains were filtered out, don't make the API call
-		if strings.TrimSpace(value) == "" {
-			fmt.Printf("%s All domains were filtered out. No API call will be made.\n", warning("⚠️"))
-			return
-		}
+		// if strings.TrimSpace(value) == "" {
+		// 	fmt.Printf("%s All domains were filtered out. No API call will be made.\n", warning("⚠️"))
+		// 	return
+		// }
 
 		// if originalValue != value {
 		// 	fmt.Printf("%s Scope filtering applied successfully\n", info("✅"))
