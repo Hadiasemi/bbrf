@@ -792,7 +792,7 @@ func filterDomainsBeforePost(company, domainsInput string) string {
 	var acceptedDomains []string
 	var rejectedCount int
 
-	fmt.Printf("%s Processing %d domains for scope filtering...\n", info("ℹ️"), len(domains))
+	// fmt.Printf("%s Processing %d domains for scope filtering...\n", info("ℹ️"), len(domains))
 
 	for _, domain := range domains {
 		domain = strings.TrimSpace(domain)
