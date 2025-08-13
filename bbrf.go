@@ -369,6 +369,11 @@ func createScopeCommand() *cobra.Command {
   cat domains.txt | bbrf company scope %s - -c acme`,
 				config.short, action, config.short, action, config.short, action),
 			Run: func(cmd *cobra.Command, args []string) {
+				if (action == "outscope" || action == "inscope" || action == "remove-outscope" || action == "remove-inscope") &&
+					!cmd.Flags().Changed("scope-filter") {
+					enableScopeFilter = false
+				}
+
 				fmt.Println(info(fmt.Sprintf("%s %s for: %s", config.emoji, config.short, company)))
 				handleInputAndPost(config.endpoint, company, "domains", args)
 			},
@@ -806,7 +811,7 @@ func filterDomainsBeforePost(company, domainsInput string) string {
 			}
 		} else {
 			rejectedCount++
-			fmt.Printf("%s %s - %s\n", errorC("❌ REJECTED:"), domainClr(domain), reason)
+			// fmt.Printf("%s %s - %s\n", errorC("❌ REJECTED:"), domainClr(domain), reason)
 		}
 	}
 
